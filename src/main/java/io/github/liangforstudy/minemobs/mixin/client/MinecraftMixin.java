@@ -27,7 +27,8 @@ public abstract class MinecraftMixin {
     /** Called every tick with whether attack is held: the entity version of continueDestroyBlock. */
     @Inject(method = "continueAttack", at = @At("HEAD"), cancellable = true)
     private void minemobs$continueMining(boolean leftClick, CallbackInfo ci) {
-        boolean held = leftClick && this.missTime <= 0 && this.player != null && !this.player.isUsingItem();
+        boolean simulated = this.player != null && ClientMiningController.debugHeld((Minecraft) (Object) this);
+        boolean held = (leftClick || simulated) && this.missTime <= 0 && this.player != null && !this.player.isUsingItem();
         if (ClientMiningController.tick((Minecraft) (Object) this, held)) {
             ci.cancel();
         }

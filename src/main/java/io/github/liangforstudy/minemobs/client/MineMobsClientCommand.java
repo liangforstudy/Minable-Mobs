@@ -1,6 +1,7 @@
 package io.github.liangforstudy.minemobs.client;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import io.github.liangforstudy.minemobs.client.gui.MineMobsSettingsScreen;
@@ -10,6 +11,7 @@ import io.github.liangforstudy.minemobs.client.overlay.BreakOverlayMappings;
 import io.github.liangforstudy.minemobs.client.overlay.ModelExporter;
 import io.github.liangforstudy.minemobs.mining.Mining;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandBuildContext;
@@ -37,6 +39,16 @@ public final class MineMobsClientCommand {
     }
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandBuildContext context) {
+        if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            // Dev only: simulate pressing attack and holding it, for automated tests (the game ignores
+            // a mouse button held while its window isn't focused)
+            dispatcher.register(literal("minemobs").then(literal("debug").then(literal("attack")
+                    .then(argument("ticks", IntegerArgumentType.integer(0, 2000)).executes(ctx -> {
+                        int ticks = IntegerArgumentType.getInteger(ctx, "ticks");
+                        ctx.getSource().getClient().tell(() -> ClientMiningController.debugAttack(ticks));
+                        return 1;
+                    })))));
+        }
         dispatcher.register(literal("minemobs")
                 .then(literal("exportmodel")
                         .executes(MineMobsClientCommand::exportLookedAt)
@@ -49,7 +61,10 @@ public final class MineMobsClientCommand {
                 .then(literal("holddelay")
                         .executes(MineMobsClientCommand::showHoldDelay)
                         .then(argument("delay", StringArgumentType.word()).executes(MineMobsClientCommand::setHoldDelay)))
-                .then(literal("settings").executes(MineMobsClientCommand::openSettings)));
+                .then(literal("settings")
+                        .executes(ctx -> openSettings(ctx, null))
+                        .then(argument("entity", ResourceArgument.resource(context, Registries.ENTITY_TYPE))
+                                .executes(ctx -> openSettings(ctx, entityArgument(ctx).value())))));
     }
 
     private static int showHoldDelay(CommandContext<FabricClientCommandSource> ctx) {
@@ -72,11 +87,17 @@ public final class MineMobsClientCommand {
         return showHoldDelay(ctx);
     }
 
-    private static int openSettings(CommandContext<FabricClientCommandSource> ctx) {
+    /** @param mob open the Mobs tab with this mob selected, or null for the screen as last left */
+    private static int openSettings(CommandContext<FabricClientCommandSource> ctx, EntityType<?> mob) {
         Minecraft mc = ctx.getSource().getClient();
         // The chat screen closes right after the command runs, so open ours on the next tick
-        mc.tell(() -> mc.setScreen(new MineMobsSettingsScreen(null)));
+        mc.tell(() -> mc.setScreen(new MineMobsSettingsScreen(null, mob)));
         return 1;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Holder.Reference<EntityType<?>> entityArgument(CommandContext<FabricClientCommandSource> ctx) {
+        return ctx.getArgument("entity", Holder.Reference.class);
     }
 
     /** Compare against the plain modes without editing any break_overlay file. Not saved. */

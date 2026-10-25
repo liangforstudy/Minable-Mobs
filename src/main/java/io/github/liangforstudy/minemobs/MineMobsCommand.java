@@ -36,7 +36,10 @@ public final class MineMobsCommand {
                 .then(Commands.literal("holddelay")
                         .executes(MineMobsCommand::clientOnly)
                         .then(Commands.argument("delay", StringArgumentType.word()).executes(MineMobsCommand::clientOnly)))
-                .then(Commands.literal("settings").executes(MineMobsCommand::clientOnly)));
+                .then(Commands.literal("settings")
+                        .executes(MineMobsCommand::clientOnly)
+                        .then(Commands.argument("entity", ResourceArgument.resource(context, Registries.ENTITY_TYPE))
+                                .executes(MineMobsCommand::clientOnly))));
     }
 
     private static int clientOnly(CommandContext<CommandSourceStack> ctx) {

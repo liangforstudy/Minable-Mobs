@@ -59,9 +59,23 @@ public class MineMobsSettingsScreen extends Screen {
     private String search = "";
     private double listScroll;
     @Nullable private MobList list;
+    @Nullable private StringWidget subtitle;
+    @Nullable private Button reset;
+    /** Opened for one mob: scroll the list to it once. */
+    private boolean scrollToSelected;
 
     public MineMobsSettingsScreen(@Nullable Screen parent) {
+        this(parent, null);
+    }
+
+    /** Opens the Mobs tab with this mob selected (from /minemobs settings <mob>). */
+    public MineMobsSettingsScreen(@Nullable Screen parent, @Nullable EntityType<?> mob) {
         super(Component.literal("Minable Mobs"));
+        if (mob != null) {
+            this.tab = Tab.MOBS;
+            this.selected = mob;
+            this.scrollToSelected = true;
+        }
         this.parent = parent;
         MineMobsConfig server = ClientMiningState.serverSettings();
         this.working = server == null ? null : MineMobsConfig.fromJson(server.toJson());
@@ -72,6 +86,8 @@ public class MineMobsSettingsScreen extends Screen {
     protected void init() {
         timeFields.clear();
         list = null;
+        subtitle = null;
+        reset = null;
         int tabWidth = 100;
         Button general = addRenderableWidget(Button.builder(Component.literal("General"), b -> switchTab(Tab.GENERAL))
                 .bounds(width / 2 - tabWidth - 2, 26, tabWidth, 20).build());
@@ -94,7 +110,7 @@ public class MineMobsSettingsScreen extends Screen {
         int controls = left + 160;
         int y = 60;
 
-        label(left, y, 150, Component.literal("Mob mining"));
+        label(left, y + 6, 150, Component.literal("Mob mining"));
         if (working != null) {
             CycleButton<Boolean> enabled = addRenderableWidget(CycleButton.onOffBuilder(working.enabled).displayOnlyValue()
                     .create(controls, y, 150, 20, Component.literal("Mob mining"), (button, value) -> {
@@ -104,11 +120,11 @@ public class MineMobsSettingsScreen extends Screen {
             enabled.active = canEdit;
             enabled.setTooltip(Tooltip.create(Component.literal("Turns mob mining on or off for everyone on this server (same as /minemobs).")));
         } else {
-            label(controls, y, 150, Component.literal("Join a world first").withColor(MUTED));
+            label(controls, y + 6, 150, Component.literal("Join a world first").withColor(MUTED));
         }
 
         y += 26;
-        label(left, y, 150, Component.literal("Tap or hold delay"));
+        label(left, y + 6, 150, Component.literal("Tap or hold delay"));
         timeField(controls, y, 60, MineMobsClientConfig.get().holdDelayTicks, 0, MineMobsClientConfig.MAX_HOLD_DELAY, true, ticks -> {
             MineMobsClientConfig.get().holdDelayTicks = ticks;
             MineMobsClientConfig.save();
@@ -147,15 +163,17 @@ public class MineMobsSettingsScreen extends Screen {
         list = new MobList(minecraft, listX, 76, listWidth, height - 76 - 34);
         list.fill();
         list.setScrollAmount(listScroll);
+        if (scrollToSelected) {
+            list.showSelected();
+            scrollToSelected = false;
+        }
         addRenderableWidget(list);
 
         int y = 54;
         Component name = selected == null ? Component.literal("All mobs (default)") : selected.getDescription();
         label(panelX, y, panelWidth, name.copy().withColor(HIGHLIGHT));
         y += 12;
-        label(panelX, y, panelWidth, Component.literal(selected == null
-                ? "Used by every mob without its own times"
-                : EntityType.getKey(selected) + (hasOwnTimes() ? "" : " · using the defaults")).withColor(MUTED));
+        subtitle = label(panelX, y, panelWidth, subtitleText());
         y += 18;
 
         if (working == null) {
@@ -170,29 +188,26 @@ public class MineMobsSettingsScreen extends Screen {
                     netheriteTicks(), this::setNetheriteTicks);
 
             if (selected != null) {
-                Button reset = addRenderableWidget(Button.builder(Component.literal("Use the defaults"), b -> {
+                reset = addRenderableWidget(Button.builder(Component.literal("Reset"), b -> {
                     working.mobs.remove(EntityType.getKey(selected).toString());
                     dirty = true;
                     rebuild();
-                }).bounds(panelX, y, 120, 20).build());
+                }).bounds(panelX, y, 60, 20).build());
+                reset.setTooltip(Tooltip.create(Component.literal("Use the default times for this mob")));
                 reset.active = canEdit && hasOwnTimes();
-                y += 26;
             }
             if (!canEdit) {
-                label(panelX, y, panelWidth, Component.literal("Read-only: only operators can change these.").withColor(HIGHLIGHT));
-                y += 16;
+                label(panelX, height - 46, panelWidth, Component.literal("Read-only: only operators can change these.").withColor(HIGHLIGHT));
             }
         }
 
         if (selected != null) {
             EntityType<?> type = selected;
-            label(panelX, y + 6, 90, Component.literal("Break overlay"));
             CycleButton<BreakOverlayMapping.Mode> mode = addRenderableWidget(CycleButton
                     .<BreakOverlayMapping.Mode>builder(m -> Component.literal(m == BreakOverlayMapping.Mode.FIT ? "Fit" : "Projection"))
                     .withValues(BreakOverlayMapping.Mode.values())
                     .withInitialValue(BreakOverlayMappings.fromFiles(type).mode())
-                    .displayOnlyValue()
-                    .create(panelX + 94, y, 100, 20, Component.literal("Break overlay"),
+                    .create(panelX + 64, y, Math.min(160, panelWidth - 64), 20, Component.literal("Cracks"),
                             (button, value) -> BreakOverlayMappings.setMode(type, value)));
             mode.setTooltip(Tooltip.create(Component.literal(
                     "Fit: the cracks follow each face. Projection: one crack texture per block across the mob. "
@@ -206,12 +221,11 @@ public class MineMobsSettingsScreen extends Screen {
         TimeField field = timeField(x + 94, y, 56, ticks, 0, MineMobsConfig.MAX_TICKS, canEdit, setter);
         unitSwitcher(x + 154, y, 70);
         y += 22;
-        int buttonWidth = (width - 3 * 2) / profiles.size();
+        // "As hard as": block + tool icons, full name and time in each tooltip
         for (int i = 0; i < profiles.size(); i++) {
             BreakProfile profile = profiles.get(i);
-            Button button = addRenderableWidget(Button.builder(Component.literal(profile.shortName()), b -> field.setTicks(profile.ticks()))
-                    .bounds(x + i * (buttonWidth + 2), y, buttonWidth, 20).build());
-            button.setTooltip(Tooltip.create(Component.literal(profile.longName() + ": " + TimeText.both(profile.ticks()))));
+            ProfileButton button = addRenderableWidget(new ProfileButton(x + i * 40, y, 38, 20, profile,
+                    b -> field.setTicks(profile.ticks())));
             button.active = canEdit;
         }
         return y + 28;
@@ -228,13 +242,26 @@ public class MineMobsSettingsScreen extends Screen {
     private void setBreakTicks(int ticks) {
         if (selected == null) working.defaultBreakTicks = ticks;
         else ownTimes().breakTicks = ticks;
-        dirty = true;
+        changed();
     }
 
     private void setNetheriteTicks(int ticks) {
         if (selected == null) working.defaultNetheriteTicks = ticks;
         else ownTimes().netheriteTicks = ticks;
+        changed();
+    }
+
+    /** Keep the subtitle and Reset button in step with edits, without rebuilding (that would drop text focus). */
+    private void changed() {
         dirty = true;
+        if (subtitle != null) subtitle.setMessage(subtitleText());
+        if (reset != null) reset.active = canEdit && hasOwnTimes();
+    }
+
+    private Component subtitleText() {
+        return Component.literal(selected == null
+                ? "Used by every mob without its own times"
+                : EntityType.getKey(selected) + (hasOwnTimes() ? " · own times" : " · using the defaults")).withColor(MUTED);
     }
 
     private MineMobsConfig.MobTimes ownTimes() {
@@ -324,6 +351,10 @@ public class MineMobsSettingsScreen extends Screen {
             for (MobEntry entry : entries) {
                 if (entry.type == selected) setSelected(entry);
             }
+        }
+
+        void showSelected() {
+            if (getSelected() != null) centerScrollOn(getSelected());
         }
 
         @Override

@@ -14,7 +14,8 @@
 - Break overlay tuner (`tools/break-overlay-tuner.html`, published as an artifact): load an export + client.jar, tune faces, save/copy the break_overlay JSON
 - Tap to hit, hold to mine: hold delay (default 4 ticks, 0 = mine right away); the wait counts toward mining (server caps the credit at `maxHoldCreditTicks`); `/minemobs holddelay 4|4t|0.2s`
 - Per-mob break time and netherite time in ticks (server `config/minemobs.json`, defaults 60 / 5), with "as hard as" profiles computed from vanilla: wood/fist, stone/stone pickaxe, stone/diamond pickaxe, stone/netherite pickaxe
-- Settings screen (own, vanilla widgets): Mod Menu + `/minemobs settings`; General (mining on/off, tap or hold delay) and Mobs (search, per-mob times, profiles, reset, break overlay mode); ‹ ticks | sec › unit switcher (click or scroll), scroll on a time box steps one tick; server settings sent on close, ops/singleplayer owner only
+- Settings screen (own, vanilla widgets): Mod Menu + `/minemobs settings [mob]` (opens straight to that mob); General (mining on/off, tap or hold delay) and Mobs (search, per-mob times, profiles, reset, break overlay mode); ‹ ticks | sec › unit switcher (click or scroll), scroll on a time box steps one tick; server settings sent on close, ops/singleplayer owner only; profile presets are block + tool icon buttons
+- Dev-only `/minemobs debug attack <ticks>`: simulated press-and-hold for automated tests through MCP Fabric (tap hits, hold credit verified 2026-10-26)
 
 ## Next
 - Mining feedback: hit sound + particles every 4 ticks, break sound + particle burst (entity-texture particles, sound data file)

@@ -23,6 +23,9 @@ public final class ClientMiningController {
     private static int pendingTicks;
     /** How long attack has been held, for sweeping onto a mob mid-hold. */
     private static int heldTicks;
+    /** Dev-only simulated attack button (/minemobs debug attack): press pending, ticks left to hold. */
+    private static boolean debugPress;
+    private static int debugHoldTicks;
 
     private ClientMiningController() {
     }
@@ -123,10 +126,32 @@ public final class ClientMiningController {
         }
     }
 
+    /** Dev only: press attack now and hold it for this many ticks, through the same hooks as the mouse. */
+    public static void debugAttack(int holdTicks) {
+        debugPress = true;
+        debugHoldTicks = holdTicks;
+    }
+
+    /** MinecraftMixin: run a simulated press, and say whether the simulated button is still down. */
+    public static boolean debugHeld(Minecraft mc) {
+        if (debugPress) {
+            debugPress = false;
+            if (!onPress(mc) && mc.hitResult instanceof EntityHitResult hit && mc.gameMode != null) {
+                mc.gameMode.attack(mc.player, hit.getEntity()); // not ours: a vanilla hit, like startAttack
+                mc.player.swing(InteractionHand.MAIN_HAND);
+            }
+        }
+        if (debugHoldTicks <= 0) return false;
+        debugHoldTicks--;
+        return true;
+    }
+
     public static void reset() {
         targetId = -1;
         pendingId = -1;
         heldTicks = 0;
+        debugPress = false;
+        debugHoldTicks = 0;
     }
 
     private static int holdDelay() {
