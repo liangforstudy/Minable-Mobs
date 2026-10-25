@@ -1,0 +1,5 @@
+{
+  "death.attack.minemobs.mined": "%1$s was mined",
+  "death.attack.minemobs.mined.player": "%1$s was mined by %2$s",
+  "death.attack.minemobs.mined.item": "%1$s was mined by %2$s using %3$s"
+}

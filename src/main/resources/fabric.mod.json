@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  "name": "${name}",
+  "description": "Mine any mob like a block and collect it as a mini figure.",
+  "authors": ["liangforstudy"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["io.github.liangforstudy.minemobs.MineMobs"],
+    "client": ["io.github.liangforstudy.minemobs.client.MineMobsClient"],
+    "modmenu": ["io.github.liangforstudy.minemobs.client.ModMenuIntegration"]
+  },
+  "mixins": [
+    "minemobs.mixins.json",
+    {
+      "config": "minemobs.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "${minecraft}"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}

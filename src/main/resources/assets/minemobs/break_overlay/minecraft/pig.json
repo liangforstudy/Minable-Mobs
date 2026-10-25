@@ -1,0 +1,8 @@
+{
+  "mode": "projection",
+  "default": { "offset_u": 8, "offset_v": 8 },
+  "faces": {
+    "head/cube0/left": { "offset_u": 0, "offset_v": 0 },
+    "head/cube0/right": { "offset_u": 0, "offset_v": 0 }
+  }
+}

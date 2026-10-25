@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.liangforstudy.minemobs.mixin.client",
+  "compatibilityLevel": "${java}",
+  "client": [
+    "EnderDragonClientMixin",
+    "EnderDragonRendererMixin",
+    "EntityModelSetMixin",
+    "IronGolemMixin",
+    "LivingEntityClientMixin",
+    "LivingEntityRendererMixin",
+    "MinecraftMixin",
+    "ModelPartCubeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

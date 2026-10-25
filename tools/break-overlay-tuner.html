@@ -1,0 +1,752 @@
+<title>Break Overlay Tuner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen workbench. 3D viewport on the left, a scrolling control column on the right; stacks below 860px. */
+:root {
+  --stone: #e6e8e9;      /* page: smooth stone */
+  --slab: #f4f5f5;       /* panels */
+  --seam: #c9cdd0;       /* borders */
+  --ink: #1d2226;        /* text */
+  --ink-soft: #5b646b;   /* secondary text */
+  --ore: #a65f35;        /* accent: iron ore */
+  --ore-ink: #ffffff;
+  --ore-wash: #a65f3522;
+  --view: #cfd4d7;       /* 3D background */
+  --ok: #2f7a4b;
+  --warn: #9a6a12;
+  --font-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --stone: #1c1f22; --slab: #24282c; --seam: #383e44; --ink: #e3e6e8; --ink-soft: #99a2a9;
+    --ore: #d8986d; --ore-ink: #1c1f22; --ore-wash: #d8986d2b; --view: #2b3034; --ok: #6fc28f; --warn: #e0b45a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --stone: #1c1f22; --slab: #24282c; --seam: #383e44; --ink: #e3e6e8; --ink-soft: #99a2a9;
+  --ore: #d8986d; --ore-ink: #1c1f22; --ore-wash: #d8986d2b; --view: #2b3034; --ok: #6fc28f; --warn: #e0b45a;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--stone); color: var(--ink); font: 14px/1.45 var(--font-body); }
+*, *::before, *::after { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ore); outline-offset: 2px; }
+
+.app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; padding-block: 12px; padding-inline: 16px; }
+.viewport { position: relative; min-width: 0; min-height: 0; border: 1px solid var(--seam); border-radius: 6px; overflow: hidden; background: var(--view); }
+.viewport canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.reference { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; opacity: .4; }
+.hud { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px 14px; font: 12px var(--font-mono); color: var(--ink-soft); pointer-events: none; }
+.hud kbd { font: inherit; color: var(--ink); background: var(--slab); border: 1px solid var(--seam); border-radius: 3px; padding: 0 4px; }
+.hover-label { position: absolute; top: 10px; left: 10px; font: 12px var(--font-mono); background: var(--slab); border: 1px solid var(--seam); border-radius: 4px; padding: 3px 7px; pointer-events: none; }
+
+.panel { min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--slab); border: 1px solid var(--seam); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+h1 { font: 600 20px/1.1 var(--font-display); margin: 0; letter-spacing: .01em; text-wrap: balance; }
+h2 { font: 600 12px/1 var(--font-display); margin: 0; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-soft); }
+.entity { font: 500 13px var(--font-mono); color: var(--ore); overflow-wrap: anywhere; }
+.badge { font: 500 11px var(--font-mono); padding: 2px 6px; border-radius: 3px; border: 1px solid var(--warn); color: var(--warn); }
+.muted { color: var(--ink-soft); font-size: 12.5px; margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--seam); background: var(--stone); border-radius: 4px; padding: 5px 10px; cursor: pointer; line-height: 1.2; }
+.btn:hover { border-color: var(--ore); }
+.btn:disabled { opacity: .45; cursor: default; border-color: var(--seam); }
+.btn.primary { background: var(--ore); color: var(--ore-ink); border-color: var(--ore); font-weight: 600; }
+.btn.on { background: var(--ore-wash); border-color: var(--ore); }
+.seg { display: inline-flex; border: 1px solid var(--seam); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ore); color: var(--ore-ink); font-weight: 600; }
+label.check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+input[type="range"] { accent-color: var(--ore); flex: 1; min-width: 100px; }
+input[type="number"] { width: 72px; background: var(--stone); border: 1px solid var(--seam); border-radius: 4px; padding: 3px 6px; font-variant-numeric: tabular-nums; }
+.field { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 8px; }
+.field > span { color: var(--ink-soft); font-size: 12.5px; }
+
+.loads { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.loads li { display: grid; grid-template-columns: 16px 92px 1fr; gap: 6px; align-items: baseline; font-size: 13px; }
+.loads .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); align-self: center; }
+.loads .dot.ok { background: var(--ok); }
+.loads .what { overflow-wrap: anywhere; color: var(--ink-soft); }
+.drop { border: 1.5px dashed var(--seam); border-radius: 6px; padding: 10px; text-align: center; color: var(--ink-soft); font-size: 12.5px; }
+body.dragging .drop { border-color: var(--ore); color: var(--ore); }
+
+.sel-summary { font: 12.5px var(--font-mono); color: var(--ink-soft); overflow-wrap: anywhere; }
+.faces { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.box-group > div { font: 500 12px var(--font-mono); color: var(--ink-soft); padding: 2px 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font: 12px var(--font-mono); border: 1px solid var(--seam); background: var(--stone); border-radius: 3px; padding: 1px 6px; cursor: pointer; }
+.chip.changed { border-color: var(--ore); }
+.chip.selected { background: var(--ore); color: var(--ore-ink); border-color: var(--ore); }
+pre.out { margin: 0; max-height: 220px; overflow: auto; background: var(--stone); border: 1px solid var(--seam); border-radius: 4px; padding: 8px; font: 12px/1.4 var(--font-mono); }
+.toast { font-size: 12.5px; color: var(--ok); min-height: 1.2em; margin: 0; }
+.toast.err { color: var(--warn); }
+
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  .app { height: auto; grid-template-columns: minmax(0, 1fr); }
+  .viewport { height: 62vh; min-height: 320px; }
+  .panel { overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <div class="viewport" id="viewport">
+    <canvas id="canvas" aria-label="3D view of the mob. Click a face to select it."></canvas>
+    <img class="reference" id="reference" alt="" hidden>
+    <div class="hover-label" id="hoverLabel" hidden></div>
+    <div class="hud">
+      <span>Click a face · <kbd>Shift</kbd>+click adds</span>
+      <span><kbd>R</kbd> rotate · <kbd>F</kbd>/<kbd>V</kbd> flip · arrows nudge</span>
+      <span><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Esc</kbd> clear</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <section class="card">
+      <div class="head">
+        <h1>Break Overlay Tuner</h1>
+        <span class="badge" id="sampleBadge">Sample</span>
+      </div>
+      <div class="entity" id="entityName">minecraft:pig</div>
+      <ul class="loads" id="loads"></ul>
+      <div class="row">
+        <button class="btn primary" id="openBtn" type="button">Open files…</button>
+        <input type="file" id="fileInput" multiple accept=".json,.png,.jar,.zip" hidden>
+        <span class="muted">or drop them anywhere</span>
+      </div>
+      <div class="drop">Export JSON from <code>/minemobs exportmodel</code> + your Minecraft <code>client.jar</code> (or single PNGs). A saved break_overlay file loads too.</div>
+    </section>
+
+    <section class="card">
+      <h2>View</h2>
+      <div class="field"><span>Mode</span>
+        <div class="seg" role="group" aria-label="Mapping mode">
+          <button type="button" id="modeFit" aria-pressed="true">Fit</button>
+          <button type="button" id="modeProj" aria-pressed="false">Projection</button>
+        </div>
+      </div>
+      <div class="field"><span>Stage <b id="stageVal">6</b></span><input type="range" id="stage" min="0" max="9" value="6" aria-label="Break stage"></div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="showSkin" checked> Skin</label>
+        <label class="check"><input type="checkbox" id="showPattern"> Orientation pattern</label>
+        <label class="check"><input type="checkbox" id="showEdges" checked> Edges</label>
+      </div>
+      <div class="field"><span>Reference</span>
+        <div class="row">
+          <button class="btn" type="button" id="refBtn">Load image…</button>
+          <input type="file" id="refInput" accept="image/*" hidden>
+          <button class="btn" type="button" id="refClear" hidden>Remove</button>
+        </div>
+      </div>
+      <div class="field" id="refOpacityRow" hidden><span>Opacity</span><input type="range" id="refOpacity" min="0" max="100" value="40" aria-label="Reference opacity"></div>
+    </section>
+
+    <section class="card">
+      <h2>Selected faces</h2>
+      <div class="sel-summary" id="selSummary">Click a face in the view.</div>
+      <div class="row">
+        <button class="btn" type="button" id="selBox">Same box</button>
+        <button class="btn" type="button" id="selSide">Same side</button>
+        <button class="btn" type="button" id="selAll">All</button>
+        <button class="btn" type="button" id="selNone">None</button>
+      </div>
+      <div class="field"><span>Rotate</span>
+        <div class="row">
+          <button class="btn" type="button" id="rotCcw" title="Rotate −90° (Shift+R)">↺ 90°</button>
+          <button class="btn" type="button" id="rotCw" title="Rotate +90° (R)">↻ 90°</button>
+          <span class="mono" id="rotVal">0°</span>
+        </div>
+      </div>
+      <div class="field"><span>Flip</span>
+        <div class="row">
+          <button class="btn" type="button" id="flipU" title="Flip horizontally (F)">↔ U</button>
+          <button class="btn" type="button" id="flipV" title="Flip vertically (V)">↕ V</button>
+        </div>
+      </div>
+      <div class="field"><span>Offset px</span>
+        <div class="row">
+          <label class="check">U <input type="number" id="offU" step="1"></label>
+          <label class="check">V <input type="number" id="offV" step="1"></label>
+        </div>
+      </div>
+      <div class="field"><span>Scale</span>
+        <div class="row"><input type="number" id="scale" step="0.25" min="0.25"><label class="check" id="stretchWrap"><input type="checkbox" id="stretch"> Stretch to face</label></div>
+      </div>
+      <div class="row">
+        <button class="btn" type="button" id="resetSel">Reset selected</button>
+        <button class="btn" type="button" id="undo">Undo</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Faces</h2>
+      <div class="faces" id="faceList"></div>
+    </section>
+
+    <section class="card">
+      <h2>break_overlay file</h2>
+      <p class="muted">Save as <code id="savePath">config/minemobs/break_overlay/minecraft/pig.json</code> in the game folder, then press <b>F3+T</b> in-game.</p>
+      <pre class="out" id="output"></pre>
+      <div class="row">
+        <button class="btn primary" type="button" id="saveBtn" hidden>Save file…</button>
+        <button class="btn" type="button" id="copyBtn">Copy JSON</button>
+      </div>
+      <p class="toast" id="toast" role="status"></p>
+    </section>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+/** Pig geometry exported with /minemobs exportmodel (numbers only; textures are placeholders until you load your jar). */
+const SAMPLE = {"format":1,"entity":"minecraft:pig","texture":"minecraft:textures/entity/pig/pig.png","faces":[{"id":"head/cube0/top","pos":[[-0.2487,1.001,-0.4002],[0.2487,1.001,-0.3498],[0.2992,1.001,-0.8472],[-0.1982,1.001,-0.8977]],"uv":[[0.25,0.0],[0.125,0.0],[0.125,0.25],[0.25,0.25]],"fit":[[0.5,0.0],[0.0,0.0],[0.0,0.5],[0.5,0.5]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.2487,-0.4002],[-0.2487,-0.3498],[-0.2992,-0.8472],[0.1982,-0.8977]]},{"id":"head/cube0/bottom","pos":[[-0.1982,0.501,-0.8977],[0.2992,0.501,-0.8472],[0.2487,0.501,-0.3498],[-0.2487,0.501,-0.4002]],"uv":[[0.375,0.25],[0.25,0.25],[0.25,0.0],[0.375,0.0]],"fit":[[0.5,0.5],[0.0,0.5],[0.0,0.0],[0.5,0.0]],"fit_stretch":[[1.0,1.0],[0.0,1.0],[0.0,0.0],[1.0,0.0]],"projection":[[0.1982,0.8977],[-0.2992,0.8472],[-0.2487,0.3498],[0.2487,0.4002]]},{"id":"head/cube0/right","pos":[[0.2992,1.001,-0.8472],[0.2487,1.001,-0.3498],[0.2487,0.501,-0.3498],[0.2992,0.501,-0.8472]],"uv":[[0.125,0.25],[0.0,0.25],[0.0,0.5],[0.125,0.5]],"fit":[[0.5,0.0],[0.0,0.0],[0.0,0.5],[0.5,0.5]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.8472,0.5],[-0.3498,0.5],[-0.3498,1.0],[-0.8472,1.0]]},{"id":"head/cube0/front","pos":[[-0.1982,1.001,-0.8977],[0.2992,1.001,-0.8472],[0.2992,0.501,-0.8472],[-0.1982,0.501,-0.8977]],"uv":[[0.25,0.25],[0.125,0.25],[0.125,0.5],[0.25,0.5]],"fit":[[0.5,0.0],[0.0,0.0],[0.0,0.5],[0.5,0.5]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.1982,0.5],[0.2992,0.5],[0.2992,1.0],[-0.1982,1.0]]},{"id":"head/cube0/left","pos":[[-0.2487,1.001,-0.4002],[-0.1982,1.001,-0.8977],[-0.1982,0.501,-0.8977],[-0.2487,0.501,-0.4002]],"uv":[[0.375,0.25],[0.25,0.25],[0.25,0.5],[0.375,0.5]],"fit":[[0.5,0.0],[0.0,0.0],[0.0,0.5],[0.5,0.5]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.4002,0.5],[0.8977,0.5],[0.8977,1.0],[0.4002,1.0]]},{"id":"head/cube0/back","pos":[[0.2487,1.001,-0.3498],[-0.2487,1.001,-0.4002],[-0.2487,0.501,-0.4002],[0.2487,0.501,-0.3498]],"uv":[[0.5,0.25],[0.375,0.25],[0.375,0.5],[0.5,0.5]],"fit":[[0.5,0.0],[0.0,0.0],[0.0,0.5],[0.5,0.5]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.2487,0.5],[0.2487,0.5],[0.2487,1.0],[-0.2487,1.0]]},{"id":"head/cube1/top","pos":[[-0.0739,0.751,-0.8851],[0.1749,0.751,-0.8598],[0.1812,0.751,-0.922],[-0.0676,0.751,-0.9473]],"uv":[[0.3281,0.5],[0.2656,0.5],[0.2656,0.5312],[0.3281,0.5312]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.0625],[0.25,0.0625]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.0739,-0.8851],[-0.1749,-0.8598],[-0.1812,-0.922],[0.0676,-0.9473]]},{"id":"head/cube1/bottom","pos":[[-0.0676,0.5635,-0.9473],[0.1812,0.5635,-0.922],[0.1749,0.5635,-0.8598],[-0.0739,0.5635,-0.8851]],"uv":[[0.3906,0.5312],[0.3281,0.5312],[0.3281,0.5],[0.3906,0.5]],"fit":[[0.25,0.0625],[0.0,0.0625],[0.0,0.0],[0.25,0.0]],"fit_stretch":[[1.0,1.0],[0.0,1.0],[0.0,0.0],[1.0,0.0]],"projection":[[0.0676,0.9473],[-0.1812,0.922],[-0.1749,0.8598],[0.0739,0.8851]]},{"id":"head/cube1/right","pos":[[0.1812,0.751,-0.922],[0.1749,0.751,-0.8598],[0.1749,0.5635,-0.8598],[0.1812,0.5635,-0.922]],"uv":[[0.2656,0.5312],[0.25,0.5312],[0.25,0.625],[0.2656,0.625]],"fit":[[0.0625,0.0],[0.0,0.0],[0.0,0.1875],[0.0625,0.1875]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.922,0.75],[-0.8598,0.75],[-0.8598,0.9375],[-0.922,0.9375]]},{"id":"head/cube1/front","pos":[[-0.0676,0.751,-0.9473],[0.1812,0.751,-0.922],[0.1812,0.5635,-0.922],[-0.0676,0.5635,-0.9473]],"uv":[[0.3281,0.5312],[0.2656,0.5312],[0.2656,0.625],[0.3281,0.625]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.1875],[0.25,0.1875]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.0676,0.75],[0.1812,0.75],[0.1812,0.9375],[-0.0676,0.9375]]},{"id":"head/cube1/left","pos":[[-0.0739,0.751,-0.8851],[-0.0676,0.751,-0.9473],[-0.0676,0.5635,-0.9473],[-0.0739,0.5635,-0.8851]],"uv":[[0.3438,0.5312],[0.3281,0.5312],[0.3281,0.625],[0.3438,0.625]],"fit":[[0.0625,0.0],[0.0,0.0],[0.0,0.1875],[0.0625,0.1875]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.8851,0.75],[0.9473,0.75],[0.9473,0.9375],[0.8851,0.9375]]},{"id":"head/cube1/back","pos":[[0.1749,0.751,-0.8598],[-0.0739,0.751,-0.8851],[-0.0739,0.5635,-0.8851],[0.1749,0.5635,-0.8598]],"uv":[[0.4062,0.5312],[0.3438,0.5312],[0.3438,0.625],[0.4062,0.625]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.1875],[0.25,0.1875]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.1749,0.75],[0.0739,0.75],[0.0739,0.9375],[-0.1749,0.9375]]},{"id":"body/cube0/top","pos":[[-0.3125,0.876,-0.5],[0.3125,0.876,-0.5],[0.3125,0.376,-0.5],[-0.3125,0.376,-0.5]],"uv":[[0.7188,0.25],[0.5625,0.25],[0.5625,0.5],[0.7188,0.5]],"fit":[[0.625,0.0],[0.0,0.0],[0.0,0.5],[0.625,0.5]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.3125,0.625],[0.3125,0.625],[0.3125,1.125],[-0.3125,1.125]]},{"id":"body/cube0/bottom","pos":[[-0.3125,0.376,0.5],[0.3125,0.376,0.5],[0.3125,0.876,0.5],[-0.3125,0.876,0.5]],"uv":[[0.875,0.5],[0.7188,0.5],[0.7188,0.25],[0.875,0.25]],"fit":[[0.625,0.5],[0.0,0.5],[0.0,0.0],[0.625,0.0]],"fit_stretch":[[1.0,1.0],[0.0,1.0],[0.0,0.0],[1.0,0.0]],"projection":[[0.3125,1.125],[-0.3125,1.125],[-0.3125,0.625],[0.3125,0.625]]},{"id":"body/cube0/right","pos":[[0.3125,0.376,-0.5],[0.3125,0.876,-0.5],[0.3125,0.876,0.5],[0.3125,0.376,0.5]],"uv":[[0.5625,0.5],[0.4375,0.5],[0.4375,1.0],[0.5625,1.0]],"fit":[[0.5,0.0],[0.0,0.0],[0.0,1.0],[0.5,1.0]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.5,1.125],[-0.5,0.625],[0.5,0.625],[0.5,1.125]]},{"id":"body/cube0/front","pos":[[-0.3125,0.376,-0.5],[0.3125,0.376,-0.5],[0.3125,0.376,0.5],[-0.3125,0.376,0.5]],"uv":[[0.7188,0.5],[0.5625,0.5],[0.5625,1.0],[0.7188,1.0]],"fit":[[0.625,0.0],[0.0,0.0],[0.0,1.0],[0.625,1.0]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.3125,0.5],[-0.3125,0.5],[-0.3125,-0.5],[0.3125,-0.5]]},{"id":"body/cube0/left","pos":[[-0.3125,0.876,-0.5],[-0.3125,0.376,-0.5],[-0.3125,0.376,0.5],[-0.3125,0.876,0.5]],"uv":[[0.8438,0.5],[0.7188,0.5],[0.7188,1.0],[0.8438,1.0]],"fit":[[0.5,0.0],[0.0,0.0],[0.0,1.0],[0.5,1.0]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.5,0.625],[0.5,1.125],[-0.5,1.125],[-0.5,0.625]]},{"id":"body/cube0/back","pos":[[0.3125,0.876,-0.5],[-0.3125,0.876,-0.5],[-0.3125,0.876,0.5],[0.3125,0.876,0.5]],"uv":[[1.0,0.5],[0.8438,0.5],[0.8438,1.0],[1.0,1.0]],"fit":[[0.625,0.0],[0.0,0.0],[0.0,1.0],[0.625,1.0]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.3125,-0.5],[0.3125,-0.5],[0.3125,0.5],[-0.3125,0.5]]},{"id":"right_hind_leg/cube0/top","pos":[[0.0625,0.376,0.5625],[0.3125,0.376,0.5625],[0.3125,0.376,0.3125],[0.0625,0.376,0.3125]],"uv":[[0.125,0.5],[0.0625,0.5],[0.0625,0.625],[0.125,0.625]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.25],[0.25,0.25]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.0625,0.5625],[-0.3125,0.5625],[-0.3125,0.3125],[-0.0625,0.3125]]},{"id":"right_hind_leg/cube0/bottom","pos":[[0.0625,0.001,0.3125],[0.3125,0.001,0.3125],[0.3125,0.001,0.5625],[0.0625,0.001,0.5625]],"uv":[[0.1875,0.625],[0.125,0.625],[0.125,0.5],[0.1875,0.5]],"fit":[[0.25,0.25],[0.0,0.25],[0.0,0.0],[0.25,0.0]],"fit_stretch":[[1.0,1.0],[0.0,1.0],[0.0,0.0],[1.0,0.0]],"projection":[[-0.0625,-0.3125],[-0.3125,-0.3125],[-0.3125,-0.5625],[-0.0625,-0.5625]]},{"id":"right_hind_leg/cube0/right","pos":[[0.3125,0.376,0.3125],[0.3125,0.376,0.5625],[0.3125,0.001,0.5625],[0.3125,0.001,0.3125]],"uv":[[0.0625,0.625],[0.0,0.625],[0.0,0.8125],[0.0625,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.3125,1.125],[0.5625,1.125],[0.5625,1.5],[0.3125,1.5]]},{"id":"right_hind_leg/cube0/front","pos":[[0.0625,0.376,0.3125],[0.3125,0.376,0.3125],[0.3125,0.001,0.3125],[0.0625,0.001,0.3125]],"uv":[[0.125,0.625],[0.0625,0.625],[0.0625,0.8125],[0.125,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.0625,1.125],[0.3125,1.125],[0.3125,1.5],[0.0625,1.5]]},{"id":"right_hind_leg/cube0/left","pos":[[0.0625,0.376,0.5625],[0.0625,0.376,0.3125],[0.0625,0.001,0.3125],[0.0625,0.001,0.5625]],"uv":[[0.1875,0.625],[0.125,0.625],[0.125,0.8125],[0.1875,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.5625,1.125],[-0.3125,1.125],[-0.3125,1.5],[-0.5625,1.5]]},{"id":"right_hind_leg/cube0/back","pos":[[0.3125,0.376,0.5625],[0.0625,0.376,0.5625],[0.0625,0.001,0.5625],[0.3125,0.001,0.5625]],"uv":[[0.25,0.625],[0.1875,0.625],[0.1875,0.8125],[0.25,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.3125,1.125],[-0.0625,1.125],[-0.0625,1.5],[-0.3125,1.5]]},{"id":"left_hind_leg/cube0/top","pos":[[-0.3125,0.376,0.5625],[-0.0625,0.376,0.5625],[-0.0625,0.376,0.3125],[-0.3125,0.376,0.3125]],"uv":[[0.125,0.5],[0.0625,0.5],[0.0625,0.625],[0.125,0.625]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.25],[0.25,0.25]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.3125,0.5625],[0.0625,0.5625],[0.0625,0.3125],[0.3125,0.3125]]},{"id":"left_hind_leg/cube0/bottom","pos":[[-0.3125,0.001,0.3125],[-0.0625,0.001,0.3125],[-0.0625,0.001,0.5625],[-0.3125,0.001,0.5625]],"uv":[[0.1875,0.625],[0.125,0.625],[0.125,0.5],[0.1875,0.5]],"fit":[[0.25,0.25],[0.0,0.25],[0.0,0.0],[0.25,0.0]],"fit_stretch":[[1.0,1.0],[0.0,1.0],[0.0,0.0],[1.0,0.0]],"projection":[[0.3125,-0.3125],[0.0625,-0.3125],[0.0625,-0.5625],[0.3125,-0.5625]]},{"id":"left_hind_leg/cube0/right","pos":[[-0.0625,0.376,0.3125],[-0.0625,0.376,0.5625],[-0.0625,0.001,0.5625],[-0.0625,0.001,0.3125]],"uv":[[0.0625,0.625],[0.0,0.625],[0.0,0.8125],[0.0625,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.3125,1.125],[0.5625,1.125],[0.5625,1.5],[0.3125,1.5]]},{"id":"left_hind_leg/cube0/front","pos":[[-0.3125,0.376,0.3125],[-0.0625,0.376,0.3125],[-0.0625,0.001,0.3125],[-0.3125,0.001,0.3125]],"uv":[[0.125,0.625],[0.0625,0.625],[0.0625,0.8125],[0.125,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.3125,1.125],[-0.0625,1.125],[-0.0625,1.5],[-0.3125,1.5]]},{"id":"left_hind_leg/cube0/left","pos":[[-0.3125,0.376,0.5625],[-0.3125,0.376,0.3125],[-0.3125,0.001,0.3125],[-0.3125,0.001,0.5625]],"uv":[[0.1875,0.625],[0.125,0.625],[0.125,0.8125],[0.1875,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.5625,1.125],[-0.3125,1.125],[-0.3125,1.5],[-0.5625,1.5]]},{"id":"left_hind_leg/cube0/back","pos":[[-0.0625,0.376,0.5625],[-0.3125,0.376,0.5625],[-0.3125,0.001,0.5625],[-0.0625,0.001,0.5625]],"uv":[[0.25,0.625],[0.1875,0.625],[0.1875,0.8125],[0.25,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.0625,1.125],[0.3125,1.125],[0.3125,1.5],[0.0625,1.5]]},{"id":"right_front_leg/cube0/top","pos":[[0.0625,0.376,-0.1875],[0.3125,0.376,-0.1875],[0.3125,0.376,-0.4375],[0.0625,0.376,-0.4375]],"uv":[[0.125,0.5],[0.0625,0.5],[0.0625,0.625],[0.125,0.625]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.25],[0.25,0.25]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.0625,-0.1875],[-0.3125,-0.1875],[-0.3125,-0.4375],[-0.0625,-0.4375]]},{"id":"right_front_leg/cube0/bottom","pos":[[0.0625,0.001,-0.4375],[0.3125,0.001,-0.4375],[0.3125,0.001,-0.1875],[0.0625,0.001,-0.1875]],"uv":[[0.1875,0.625],[0.125,0.625],[0.125,0.5],[0.1875,0.5]],"fit":[[0.25,0.25],[0.0,0.25],[0.0,0.0],[0.25,0.0]],"fit_stretch":[[1.0,1.0],[0.0,1.0],[0.0,0.0],[1.0,0.0]],"projection":[[-0.0625,0.4375],[-0.3125,0.4375],[-0.3125,0.1875],[-0.0625,0.1875]]},{"id":"right_front_leg/cube0/right","pos":[[0.3125,0.376,-0.4375],[0.3125,0.376,-0.1875],[0.3125,0.001,-0.1875],[0.3125,0.001,-0.4375]],"uv":[[0.0625,0.625],[0.0,0.625],[0.0,0.8125],[0.0625,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.4375,1.125],[-0.1875,1.125],[-0.1875,1.5],[-0.4375,1.5]]},{"id":"right_front_leg/cube0/front","pos":[[0.0625,0.376,-0.4375],[0.3125,0.376,-0.4375],[0.3125,0.001,-0.4375],[0.0625,0.001,-0.4375]],"uv":[[0.125,0.625],[0.0625,0.625],[0.0625,0.8125],[0.125,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.0625,1.125],[0.3125,1.125],[0.3125,1.5],[0.0625,1.5]]},{"id":"right_front_leg/cube0/left","pos":[[0.0625,0.376,-0.1875],[0.0625,0.376,-0.4375],[0.0625,0.001,-0.4375],[0.0625,0.001,-0.1875]],"uv":[[0.1875,0.625],[0.125,0.625],[0.125,0.8125],[0.1875,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.1875,1.125],[0.4375,1.125],[0.4375,1.5],[0.1875,1.5]]},{"id":"right_front_leg/cube0/back","pos":[[0.3125,0.376,-0.1875],[0.0625,0.376,-0.1875],[0.0625,0.001,-0.1875],[0.3125,0.001,-0.1875]],"uv":[[0.25,0.625],[0.1875,0.625],[0.1875,0.8125],[0.25,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.3125,1.125],[-0.0625,1.125],[-0.0625,1.5],[-0.3125,1.5]]},{"id":"left_front_leg/cube0/top","pos":[[-0.3125,0.376,-0.1875],[-0.0625,0.376,-0.1875],[-0.0625,0.376,-0.4375],[-0.3125,0.376,-0.4375]],"uv":[[0.125,0.5],[0.0625,0.5],[0.0625,0.625],[0.125,0.625]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.25],[0.25,0.25]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.3125,-0.1875],[0.0625,-0.1875],[0.0625,-0.4375],[0.3125,-0.4375]]},{"id":"left_front_leg/cube0/bottom","pos":[[-0.3125,0.001,-0.4375],[-0.0625,0.001,-0.4375],[-0.0625,0.001,-0.1875],[-0.3125,0.001,-0.1875]],"uv":[[0.1875,0.625],[0.125,0.625],[0.125,0.5],[0.1875,0.5]],"fit":[[0.25,0.25],[0.0,0.25],[0.0,0.0],[0.25,0.0]],"fit_stretch":[[1.0,1.0],[0.0,1.0],[0.0,0.0],[1.0,0.0]],"projection":[[0.3125,0.4375],[0.0625,0.4375],[0.0625,0.1875],[0.3125,0.1875]]},{"id":"left_front_leg/cube0/right","pos":[[-0.0625,0.376,-0.4375],[-0.0625,0.376,-0.1875],[-0.0625,0.001,-0.1875],[-0.0625,0.001,-0.4375]],"uv":[[0.0625,0.625],[0.0,0.625],[0.0,0.8125],[0.0625,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.4375,1.125],[-0.1875,1.125],[-0.1875,1.5],[-0.4375,1.5]]},{"id":"left_front_leg/cube0/front","pos":[[-0.3125,0.376,-0.4375],[-0.0625,0.376,-0.4375],[-0.0625,0.001,-0.4375],[-0.3125,0.001,-0.4375]],"uv":[[0.125,0.625],[0.0625,0.625],[0.0625,0.8125],[0.125,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[-0.3125,1.125],[-0.0625,1.125],[-0.0625,1.5],[-0.3125,1.5]]},{"id":"left_front_leg/cube0/left","pos":[[-0.3125,0.376,-0.1875],[-0.3125,0.376,-0.4375],[-0.3125,0.001,-0.4375],[-0.3125,0.001,-0.1875]],"uv":[[0.1875,0.625],[0.125,0.625],[0.125,0.8125],[0.1875,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.1875,1.125],[0.4375,1.125],[0.4375,1.5],[0.1875,1.5]]},{"id":"left_front_leg/cube0/back","pos":[[-0.0625,0.376,-0.1875],[-0.3125,0.376,-0.1875],[-0.3125,0.001,-0.1875],[-0.0625,0.001,-0.1875]],"uv":[[0.25,0.625],[0.1875,0.625],[0.1875,0.8125],[0.25,0.8125]],"fit":[[0.25,0.0],[0.0,0.0],[0.0,0.375],[0.25,0.375]],"fit_stretch":[[1.0,0.0],[0.0,0.0],[0.0,1.0],[1.0,1.0]],"projection":[[0.0625,1.125],[0.3125,1.125],[0.3125,1.5],[0.0625,1.5]]}]};
+
+const IDENTITY = { rotation: 0, flip_u: false, flip_v: false, offset_u: 0, offset_v: 0, scale: 1, stretch: false };
+const $ = id => document.getElementById(id);
+
+const state = {
+  model: null,           // { entity, texture, faces: [{ id, box, pos, uv, fit, fit_stretch, projection, normal }] }
+  sample: true,
+  mapping: { mode: "fit", faces: {} },
+  selection: new Set(),  // face indices
+  hover: -1,
+  stage: 6,
+  history: [],
+  jars: [],              // loaded JSZip archives
+  pngs: new Map(),       // filename -> Blob
+  skinSource: "placeholder",
+  stageSource: "placeholder",
+};
+
+/* ---------- storage (per viewer, per mob) ---------- */
+const store = {
+  get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } },
+  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} },
+};
+const mappingKey = () => "break-overlay:" + (state.model?.entity ?? "?");
+
+/* ---------- three.js scene ---------- */
+const canvas = $("canvas");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
+camera.position.set(-1.6, 1.4, -2.2);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.target.set(0, 0.5, 0);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+sun.position.set(-2, 4, -3);
+scene.add(sun);
+
+const nearest = tex => { tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.flipY = false; tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true; return tex; };
+const canvasTexture = c => nearest(new THREE.CanvasTexture(c));
+
+const skinMat = new THREE.MeshLambertMaterial({ side: THREE.DoubleSide, alphaTest: 0.1 });
+// Same blend as Minecraft's crumbling render type: result = 2 * texture * surface (grey 0.5 leaves it unchanged)
+const crackMat = new THREE.MeshBasicMaterial({
+  side: THREE.DoubleSide, alphaTest: 0.1, transparent: true, depthWrite: false,
+  blending: THREE.CustomBlending, blendSrc: THREE.DstColorFactor, blendDst: THREE.SrcColorFactor, blendEquation: THREE.AddEquation,
+  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4,
+});
+const patternMat = new THREE.MeshBasicMaterial({
+  side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthWrite: false,
+  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4,
+});
+const selectMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 });
+const edgeMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.35 });
+const selEdgeMat = new THREE.LineBasicMaterial({});
+
+let skinMesh, crackMesh, selectMesh, edgeLines, selEdges, hoverEdges;
+const crackTextures = [];
+let patternTexture;
+
+function themeColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function applyTheme() {
+  renderer.setClearColor(new THREE.Color(themeColor("--view")));
+  const ore = new THREE.Color(themeColor("--ore"));
+  selectMat.color = ore; selEdgeMat.color = ore;
+  edgeMat.color = new THREE.Color(themeColor("--ink"));
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+/* ---------- placeholder textures (until the real ones are loaded) ---------- */
+function rng(seed) { return () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296; }
+function placeholderSkin() {
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d"); const r = rng(7);
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    const k = 0.9 + r() * 0.12;
+    g.fillStyle = `rgb(${Math.round(236 * k)},${Math.round(160 * k)},${Math.round(156 * k)})`;
+    g.fillRect(x, y, 1, 1);
+  }
+  return canvasTexture(c);
+}
+function placeholderCracks(stage) {
+  const c = document.createElement("canvas"); c.width = c.height = 16;
+  const g = c.getContext("2d"); const r = rng(11);
+  const strokes = 2 + stage * 2;
+  for (let s = 0; s < strokes; s++) {
+    let x = 8 + Math.round((r() - 0.5) * 6), y = 8 + Math.round((r() - 0.5) * 6);
+    const len = 3 + Math.round(r() * (3 + stage));
+    for (let i = 0; i < len; i++) {
+      g.fillStyle = "rgba(40,40,40,1)"; g.fillRect((x + 16) % 16, (y + 16) % 16, 1, 1);
+      g.fillStyle = "rgba(170,170,170,1)"; g.fillRect((x + 17) % 16, (y + 16) % 16, 1, 1);
+      x += Math.round((r() - 0.5) * 2.4); y += Math.round((r() - 0.5) * 2.4);
+    }
+  }
+  return canvasTexture(c);
+}
+function makePattern() {
+  // 16x16: grid every 4px, red top-left corner, arrow pointing to the top (v = 0), "F" to show mirroring
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d");
+  g.fillStyle = "#f2f2f2"; g.fillRect(0, 0, 64, 64);
+  g.strokeStyle = "#b8b8b8"; g.lineWidth = 1;
+  for (let i = 0; i <= 64; i += 16) { g.beginPath(); g.moveTo(i + .5, 0); g.lineTo(i + .5, 64); g.moveTo(0, i + .5); g.lineTo(64, i + .5); g.stroke(); }
+  g.fillStyle = "#d33"; g.fillRect(0, 0, 12, 12);
+  g.fillStyle = "#2a6ad8"; g.beginPath(); g.moveTo(44, 6); g.lineTo(56, 22); g.lineTo(48, 22); g.lineTo(48, 34); g.lineTo(40, 34); g.lineTo(40, 22); g.lineTo(32, 22); g.closePath(); g.fill();
+  g.fillStyle = "#222"; g.fillRect(14, 36, 6, 22); g.fillRect(14, 36, 18, 6); g.fillRect(14, 45, 12, 5);
+  const t = canvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+
+function setCrackTexture(stage, tex) {
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  crackTextures[stage]?.dispose?.();
+  crackTextures[stage] = tex;
+}
+for (let i = 0; i < 10; i++) setCrackTexture(i, placeholderCracks(i));
+skinMat.map = placeholderSkin();
+patternTexture = makePattern();
+patternMat.map = patternTexture;
+
+/* ---------- face math (same as FaceAdjust.apply in the mod) ---------- */
+function adjustOf(i) { return { ...IDENTITY, ...(state.mapping.faces[state.model.faces[i].id] ?? {}) }; }
+function faceUv(i) {
+  const f = state.model.faces[i], a = adjustOf(i);
+  const base = state.mapping.mode === "projection" ? f.projection : (a.stretch ? f.fit_stretch : f.fit);
+  const cu = (base[0][0] + base[1][0] + base[2][0] + base[3][0]) / 4;
+  const cv = (base[0][1] + base[1][1] + base[2][1] + base[3][1]) / 4;
+  const turns = ((a.rotation / 90) % 4 + 4) % 4;
+  return base.map(([u, v]) => {
+    let du = (u - cu) / a.scale, dv = (v - cv) / a.scale;
+    if (a.flip_u) du = -du;
+    if (a.flip_v) dv = -dv;
+    for (let t = 0; t < turns; t++) [du, dv] = [-dv, du];
+    return [cu + du + a.offset_u / 16, cv + dv + a.offset_v / 16];
+  });
+}
+
+/* ---------- geometry ---------- */
+function quadGeometry(indices, uvFor) {
+  const n = indices.length;
+  const pos = new Float32Array(n * 12), uv = new Float32Array(n * 8), idx = [];
+  indices.forEach((fi, q) => {
+    const f = state.model.faces[fi]; const u = uvFor ? uvFor(fi) : null;
+    for (let k = 0; k < 4; k++) {
+      pos.set(f.pos[k], q * 12 + k * 3);
+      if (u) uv.set(u[k], q * 8 + k * 2);
+    }
+    idx.push(q * 4, q * 4 + 1, q * 4 + 2, q * 4, q * 4 + 2, q * 4 + 3);
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals(); // quads don't share vertices, so each face gets its own flat normal
+  return geo;
+}
+function edgeGeometry(indices) {
+  const pts = [];
+  for (const fi of indices) {
+    const p = state.model.faces[fi].pos;
+    for (let k = 0; k < 4; k++) pts.push(...p[k], ...p[(k + 1) % 4]);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+  return geo;
+}
+function replace(obj, next) { if (obj) { scene.remove(obj); obj.geometry.dispose(); } scene.add(next); return next; }
+
+function buildScene() {
+  const all = state.model.faces.map((_, i) => i);
+  skinMesh = replace(skinMesh, new THREE.Mesh(quadGeometry(all, i => state.model.faces[i].uv), skinMat));
+  crackMesh = replace(crackMesh, new THREE.Mesh(quadGeometry(all, faceUv), crackMat));
+  crackMesh.renderOrder = 1;
+  edgeLines = replace(edgeLines, new THREE.LineSegments(edgeGeometry(all), edgeMat));
+  // frame the model
+  const box = new THREE.Box3().setFromObject(skinMesh), size = box.getSize(new THREE.Vector3()), center = box.getCenter(new THREE.Vector3());
+  const r = Math.max(size.x, size.y, size.z);
+  controls.target.copy(center);
+  camera.position.copy(center).add(new THREE.Vector3(-1.1, 0.8, -1.5).multiplyScalar(r * 1.6));
+  updateLook();
+  refreshSelection();
+}
+function refreshUvs() {
+  const all = state.model.faces.map((_, i) => i);
+  const attr = crackMesh.geometry.getAttribute("uv");
+  all.forEach((fi, q) => faceUv(fi).forEach((u, k) => attr.setXY(q * 4 + k, u[0], u[1])));
+  attr.needsUpdate = true;
+}
+function updateLook() {
+  skinMesh.visible = $("showSkin").checked;
+  edgeLines.visible = $("showEdges").checked;
+  const pattern = $("showPattern").checked;
+  crackMesh.material = pattern ? patternMat : crackMat;
+  crackMat.map = crackTextures[state.stage];
+  crackMat.needsUpdate = true;
+}
+function refreshSelection() {
+  const sel = [...state.selection];
+  selectMesh = replace(selectMesh, new THREE.Mesh(quadGeometry(sel), selectMat));
+  selectMesh.renderOrder = 2;
+  selEdges = replace(selEdges, new THREE.LineSegments(edgeGeometry(sel), selEdgeMat));
+  hoverEdges = replace(hoverEdges, new THREE.LineSegments(edgeGeometry(state.hover >= 0 ? [state.hover] : []), selEdgeMat));
+  renderPanel();
+}
+
+/* ---------- loading a model ---------- */
+function loadModel(json, isSample) {
+  const faces = json.faces.map(f => {
+    const [a, b, c] = f.pos.map(p => new THREE.Vector3(...p));
+    const normal = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)).normalize();
+    return { ...f, box: f.id.slice(0, f.id.lastIndexOf("/")), normal };
+  });
+  state.model = { entity: json.entity, texture: json.texture, faces };
+  state.sample = isSample;
+  state.selection.clear(); state.hover = -1; state.history = [];
+  state.mapping = store.get(mappingKey()) ?? { mode: "fit", faces: {} };
+  const [ns, path] = json.entity.split(":");
+  $("entityName").textContent = json.entity;
+  $("savePath").textContent = `config/minemobs/break_overlay/${ns}/${path}.json`;
+  $("sampleBadge").hidden = !isSample;
+  buildScene();
+  resolveTextures();
+}
+
+/* ---------- textures from jars and PNGs ---------- */
+let jszipLoading;
+function loadJSZip() {
+  jszipLoading ??= new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+    s.onload = () => resolve(window.JSZip); s.onerror = () => reject(new Error("Couldn't load the zip reader"));
+    document.head.appendChild(s);
+  });
+  return jszipLoading;
+}
+function assetPath(id) { const [ns, p] = id.includes(":") ? id.split(":") : ["minecraft", id]; return `assets/${ns}/${p}`; }
+async function findBlob(zipPath) {
+  const base = zipPath.split("/").pop();
+  if (state.pngs.has(base)) return state.pngs.get(base);
+  for (const jar of state.jars) { const entry = jar.file(zipPath); if (entry) return await entry.async("blob"); }
+  return null;
+}
+async function blobTexture(blob) {
+  const bmp = await createImageBitmap(blob);
+  return nearest(new THREE.Texture(bmp));
+}
+async function resolveTextures() {
+  if (!state.model) return;
+  const skin = await findBlob(assetPath(state.model.texture));
+  if (skin) { skinMat.map = await blobTexture(skin); skinMat.needsUpdate = true; state.skinSource = "loaded"; }
+  let found = 0;
+  for (let i = 0; i < 10; i++) {
+    const blob = await findBlob(`assets/minecraft/textures/block/destroy_stage_${i}.png`);
+    if (blob) { setCrackTexture(i, await blobTexture(blob)); found++; }
+  }
+  if (found) state.stageSource = found === 10 ? "loaded" : `${found}/10 loaded`;
+  updateLook();
+  renderLoads();
+}
+
+async function handleFiles(files) {
+  let modelJson = null, mappingJson = null, problems = [];
+  for (const file of files) {
+    const name = file.name.toLowerCase();
+    try {
+      if (name.endsWith(".json")) {
+        const json = JSON.parse(await file.text());
+        if (Array.isArray(json.faces) && json.entity) modelJson = json;
+        else if (json.faces && typeof json.faces === "object") mappingJson = json;
+        else problems.push(`${file.name}: not an export or break_overlay file`);
+      } else if (name.endsWith(".png")) {
+        state.pngs.set(file.name, file);
+      } else if (name.endsWith(".jar") || name.endsWith(".zip")) {
+        toast(`Reading ${file.name}…`);
+        const JSZip = await loadJSZip();
+        state.jars.push(await JSZip.loadAsync(file));
+      } else problems.push(`${file.name}: unsupported file type`);
+    } catch (e) { problems.push(`${file.name}: ${e.message}`); }
+  }
+  if (modelJson) loadModel(modelJson, false);
+  if (mappingJson && state.model) {
+    pushHistory();
+    // A "default" block applies to every face not listed; spell it out per face so each can be edited
+    const faces = {};
+    for (const f of state.model.faces) {
+      const merged = { ...(mappingJson.default ?? {}), ...(mappingJson.faces?.[f.id] ?? {}) };
+      const trimmed = Object.fromEntries(Object.entries(merged).filter(([k, v]) => k in IDENTITY && v !== IDENTITY[k]));
+      if (Object.keys(trimmed).length) faces[f.id] = trimmed;
+    }
+    state.mapping = { mode: mappingJson.mode === "projection" ? "projection" : "fit", faces };
+    changed();
+  }
+  await resolveTextures();
+  if (problems.length) toast(problems.join(" · "), true);
+  else toast(`Loaded ${files.length} file${files.length === 1 ? "" : "s"}`);
+}
+$("openBtn").onclick = () => $("fileInput").click();
+$("fileInput").onchange = e => { handleFiles([...e.target.files]); e.target.value = ""; };
+addEventListener("dragover", e => { e.preventDefault(); document.body.classList.add("dragging"); });
+addEventListener("dragleave", e => { if (!e.relatedTarget) document.body.classList.remove("dragging"); });
+addEventListener("drop", e => { e.preventDefault(); document.body.classList.remove("dragging"); handleFiles([...e.dataTransfer.files]); });
+
+/* ---------- editing ---------- */
+function pushHistory() { state.history.push(JSON.stringify(state.mapping)); if (state.history.length > 200) state.history.shift(); }
+function changed() {
+  store.set(mappingKey(), state.mapping);
+  refreshUvs(); renderPanel();
+}
+function edit(fn) {
+  if (!state.selection.size) { toast("Select a face first", true); return; }
+  pushHistory();
+  for (const i of state.selection) {
+    const id = state.model.faces[i].id;
+    const next = { ...IDENTITY, ...(state.mapping.faces[id] ?? {}) };
+    fn(next);
+    next.rotation = ((next.rotation % 360) + 360) % 360;
+    const trimmed = Object.fromEntries(Object.entries(next).filter(([k, v]) => v !== IDENTITY[k]));
+    if (Object.keys(trimmed).length) state.mapping.faces[id] = trimmed; else delete state.mapping.faces[id];
+  }
+  changed();
+}
+function undo() {
+  const prev = state.history.pop();
+  if (!prev) { toast("Nothing to undo", true); return; }
+  state.mapping = JSON.parse(prev); changed();
+}
+$("rotCw").onclick = () => edit(a => a.rotation += 90);
+$("rotCcw").onclick = () => edit(a => a.rotation += 270);
+$("flipU").onclick = () => edit(a => a.flip_u = !a.flip_u);
+$("flipV").onclick = () => edit(a => a.flip_v = !a.flip_v);
+$("offU").onchange = e => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) edit(a => a.offset_u = v); };
+$("offV").onchange = e => { const v = parseFloat(e.target.value); if (Number.isFinite(v)) edit(a => a.offset_v = v); };
+$("scale").onchange = e => { const v = parseFloat(e.target.value); if (v > 0) edit(a => a.scale = v); };
+$("stretch").onchange = e => edit(a => a.stretch = e.target.checked);
+$("resetSel").onclick = () => edit(a => Object.assign(a, IDENTITY));
+$("undo").onclick = undo;
+function setMode(mode) { pushHistory(); state.mapping.mode = mode; changed(); }
+$("modeFit").onclick = () => setMode("fit");
+$("modeProj").onclick = () => setMode("projection");
+$("stage").oninput = e => { state.stage = +e.target.value; $("stageVal").textContent = state.stage; updateLook(); };
+["showSkin", "showPattern", "showEdges"].forEach(id => $(id).onchange = updateLook);
+
+/* ---------- selection ---------- */
+function select(indices, add) {
+  if (!add) state.selection.clear();
+  for (const i of indices) { if (add && state.selection.has(i) && indices.length === 1) state.selection.delete(i); else state.selection.add(i); }
+  refreshSelection();
+}
+$("selAll").onclick = () => select(state.model.faces.map((_, i) => i), false);
+$("selNone").onclick = () => select([], false);
+$("selBox").onclick = () => {
+  const boxes = new Set([...state.selection].map(i => state.model.faces[i].box));
+  select(state.model.faces.flatMap((f, i) => boxes.has(f.box) ? [i] : []), false);
+};
+$("selSide").onclick = () => {
+  const normals = [...state.selection].map(i => state.model.faces[i].normal);
+  select(state.model.faces.flatMap((f, i) => normals.some(n => n.dot(f.normal) > 0.98) ? [i] : []), false);
+};
+
+const raycaster = new THREE.Raycaster(), pointer = new THREE.Vector2();
+function pick(e) {
+  const r = canvas.getBoundingClientRect();
+  pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObject(skinMesh, false)[0];
+  return hit ? Math.floor(hit.faceIndex / 2) : -1;
+}
+let downAt = null;
+canvas.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; });
+canvas.addEventListener("pointerup", e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return; // that was an orbit drag
+  const i = pick(e);
+  if (i >= 0) select([i], e.shiftKey || e.ctrlKey || e.metaKey); else if (!e.shiftKey) select([], false);
+});
+canvas.addEventListener("pointermove", e => {
+  if (e.buttons) return;
+  const i = pick(e);
+  if (i !== state.hover) {
+    state.hover = i;
+    hoverEdges = replace(hoverEdges, new THREE.LineSegments(edgeGeometry(i >= 0 ? [i] : []), selEdgeMat));
+    const label = $("hoverLabel");
+    label.hidden = i < 0;
+    if (i >= 0) label.textContent = state.model.faces[i].id;
+  }
+});
+canvas.addEventListener("pointerleave", () => { $("hoverLabel").hidden = true; });
+
+addEventListener("keydown", e => {
+  if (e.target.matches("input, textarea")) return;
+  const k = e.key;
+  if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === "z") { e.preventDefault(); undo(); return; }
+  if (k === "Escape") select([], false);
+  else if (k.toLowerCase() === "r") edit(a => a.rotation += e.shiftKey ? 270 : 90);
+  else if (k.toLowerCase() === "f") edit(a => a.flip_u = !a.flip_u);
+  else if (k.toLowerCase() === "v") edit(a => a.flip_v = !a.flip_v);
+  else if (k === "ArrowLeft") edit(a => a.offset_u -= 1);
+  else if (k === "ArrowRight") edit(a => a.offset_u += 1);
+  else if (k === "ArrowUp") edit(a => a.offset_v -= 1);
+  else if (k === "ArrowDown") edit(a => a.offset_v += 1);
+  else return;
+  e.preventDefault();
+});
+
+/* ---------- panel ---------- */
+function common(key) {
+  const values = [...state.selection].map(i => adjustOf(i)[key]);
+  return values.every(v => v === values[0]) ? values[0] : null;
+}
+function renderPanel() {
+  if (!state.model) return;
+  const fit = state.mapping.mode === "fit";
+  $("modeFit").setAttribute("aria-pressed", fit);
+  $("modeProj").setAttribute("aria-pressed", !fit);
+  $("stretchWrap").hidden = !fit;
+
+  const n = state.selection.size;
+  const ids = [...state.selection].map(i => state.model.faces[i].id);
+  $("selSummary").textContent = n === 0 ? "Click a face in the view." : n <= 3 ? ids.join(", ") : `${n} faces`;
+  for (const id of ["selBox", "selSide", "rotCcw", "rotCw", "flipU", "flipV", "offU", "offV", "scale", "stretch", "resetSel"]) $(id).disabled = n === 0;
+  $("undo").disabled = state.history.length === 0;
+  const rot = n ? common("rotation") : 0;
+  $("rotVal").textContent = rot === null ? "mixed" : `${rot}°`;
+  $("flipU").classList.toggle("on", n > 0 && common("flip_u") === true);
+  $("flipV").classList.toggle("on", n > 0 && common("flip_v") === true);
+  for (const [id, key] of [["offU", "offset_u"], ["offV", "offset_v"], ["scale", "scale"]]) {
+    const el = $(id); if (document.activeElement === el) continue;
+    const v = n ? common(key) : null; el.value = v ?? ""; el.placeholder = n ? "mixed" : "";
+  }
+  const st = n ? common("stretch") : false;
+  $("stretch").checked = st === true; $("stretch").indeterminate = st === null;
+
+  renderFaceList();
+  renderOutput();
+}
+function renderFaceList() {
+  const list = $("faceList"); list.textContent = "";
+  const groups = new Map();
+  state.model.faces.forEach((f, i) => { if (!groups.has(f.box)) groups.set(f.box, []); groups.get(f.box).push(i); });
+  for (const [box, indices] of groups) {
+    const g = document.createElement("div"); g.className = "box-group";
+    const title = document.createElement("div"); title.textContent = box; g.appendChild(title);
+    const chips = document.createElement("div"); chips.className = "chips";
+    for (const i of indices) {
+      const f = state.model.faces[i];
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip";
+      b.textContent = f.id.slice(f.id.lastIndexOf("/") + 1);
+      b.classList.toggle("changed", !!state.mapping.faces[f.id]);
+      b.classList.toggle("selected", state.selection.has(i));
+      b.title = f.id;
+      b.onclick = e => select([i], e.shiftKey || e.ctrlKey || e.metaKey);
+      b.onmouseenter = () => { hoverEdges = replace(hoverEdges, new THREE.LineSegments(edgeGeometry([i]), selEdgeMat)); };
+      chips.appendChild(b);
+    }
+    g.appendChild(chips); list.appendChild(g);
+  }
+}
+function outputJson() {
+  const faces = Object.fromEntries(Object.keys(state.mapping.faces).sort().map(k => [k, state.mapping.faces[k]]));
+  return JSON.stringify({ mode: state.mapping.mode, faces }, null, 2) + "\n";
+}
+function renderOutput() { $("output").textContent = outputJson(); }
+function renderLoads() {
+  const rows = [
+    ["Model", !state.sample, state.sample ? "pig sample" : `${state.model.faces.length} faces`],
+    ["Skin", state.skinSource === "loaded", state.skinSource === "loaded" ? state.model.texture : "placeholder — load your client.jar"],
+    ["Break textures", state.stageSource === "loaded", state.stageSource === "loaded" ? "destroy_stage_0–9" : state.stageSource === "placeholder" ? "placeholder — load your client.jar" : state.stageSource],
+  ];
+  $("loads").innerHTML = "";
+  for (const [label, ok, what] of rows) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="dot${ok ? " ok" : ""}"></span><span></span><span class="what"></span>`;
+    li.children[1].textContent = label; li.children[2].textContent = what;
+    $("loads").appendChild(li);
+  }
+}
+
+/* ---------- reference image ---------- */
+$("refBtn").onclick = () => $("refInput").click();
+$("refInput").onchange = e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  const img = $("reference");
+  if (img.src) URL.revokeObjectURL(img.src);
+  img.src = URL.createObjectURL(file); img.hidden = false;
+  $("refClear").hidden = false; $("refOpacityRow").hidden = false;
+};
+$("refClear").onclick = () => { const img = $("reference"); URL.revokeObjectURL(img.src); img.removeAttribute("src"); img.hidden = true; $("refClear").hidden = true; $("refOpacityRow").hidden = true; };
+$("refOpacity").oninput = e => { $("reference").style.opacity = e.target.value / 100; };
+
+/* ---------- output ---------- */
+let toastTimer;
+function toast(text, err = false) {
+  const t = $("toast"); t.textContent = text; t.classList.toggle("err", err);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.textContent = ""; }, 4000);
+}
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(outputJson()); toast("Copied"); }
+  catch {
+    const range = document.createRange(); range.selectNodeContents($("output"));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    toast("Selected — press Ctrl+C to copy", true);
+  }
+};
+let downloads = null;
+window.claude?.use?.("downloads").then(d => { downloads = d; $("saveBtn").hidden = !d; }).catch(() => {});
+$("saveBtn").onclick = async () => {
+  if (!downloads) return;
+  const filename = state.model.entity.split(":")[1].replace(/\//g, "_") + ".json";
+  try { await downloads.save({ filename, data: outputJson() }); toast(`Saved ${filename}`); }
+  catch (e) {
+    if (e?.code === "declined") toast("Not saved", true);
+    else if (e?.code === "rate_limited") toast("A save prompt is already open", true);
+    else { toast("Saving isn't available here — use Copy JSON", true); $("saveBtn").hidden = true; }
+  }
+};
+
+/* ---------- loop ---------- */
+function resize() {
+  const r = canvas.parentElement.getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width / Math.max(r.height, 1); camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas.parentElement);
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+
+applyTheme();
+loadModel(SAMPLE, true);
+renderLoads();
+</script>

@@ -1,0 +1,12 @@
+.gradle/
+build/
+run/
+out/
+.idea/
+*.iml
+.kotlin/
+versions/*/build/
+versions/*/.gradle/
+
+# MCP Fabric bridge token (local only)
+.mcp.json
