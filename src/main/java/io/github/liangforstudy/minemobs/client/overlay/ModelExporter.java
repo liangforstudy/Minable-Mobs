@@ -23,7 +23,7 @@ import java.nio.file.Path;
 
 /**
  * /minemobs exportmodel: renders a mob once through the break overlay and writes every face it drew
- * (id, corners, skin UVs, and the base break UVs for each mode) to minemobs-export/, for the tuner app.
+ * (id, corners, skin UVs, and the base break UVs for each mode) to minemobs-export/, for the web app.
  */
 public final class ModelExporter {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();

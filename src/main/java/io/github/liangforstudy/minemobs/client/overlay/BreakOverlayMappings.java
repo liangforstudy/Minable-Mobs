@@ -27,7 +27,7 @@ import java.util.stream.Stream;
  * <ol>
  *   <li>{@code assets/<any>/break_overlay/<namespace>/<mob>.json} from the mod and resource packs</li>
  *   <li>{@code config/minemobs/break_overlay/<namespace>/<mob>.json}, which wins — drop files from the
- *       tuner app here to try them without rebuilding</li>
+ *       web app here to try them without rebuilding</li>
  * </ol>
  */
 public final class BreakOverlayMappings implements SimpleSynchronousResourceReloadListener {

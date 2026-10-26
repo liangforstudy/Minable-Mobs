@@ -5,7 +5,7 @@ import net.minecraft.util.GsonHelper;
 
 /**
  * How the break texture sits on one face. Applied to the face's base UVs, around the face's center,
- * in this order: scale, flip, rotate, offset. The tuner app does exactly the same math.
+ * in this order: scale, flip, rotate, offset. The web app does exactly the same math.
  *
  * @param rotation clockwise, 0 / 90 / 180 / 270
  * @param offsetU  in texture pixels (16 = one whole texture)
