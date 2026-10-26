@@ -158,15 +158,15 @@ Files are loaded on every resource reload (F3+T) from two places:
 
 `/minemobs overlay fit|projection` temporarily ignores all files to preview a plain mode. `/minemobs overlay files` switches back to the files.
 
-### The tuner app (`tools/break-overlay-tuner.html`)
+### The web app (`tools/break-overlay-tuner.html`)
 
 Tuning faces by hand-editing JSON is slow, so there's a browser tool:
 
 1. In game, `/minemobs exportmodel [mob]` (`ModelExporter.java`) draws the mob once through the overlay, into a buffer that throws everything away. It records every face (name, corners, skin UVs, and the base crack UVs for each mode) to `minemobs-export/<mob>.json`.
-2. Load that export and your `client.jar` (for the textures) into the tuner. It shows the mob in 3D and lets you adjust faces.
+2. Load that export and your `client.jar` (for the textures) into the web app. It shows the mob in 3D and lets you adjust faces.
 3. Save the JSON into `config/minemobs/break_overlay/` and press F3+T.
 
-The tuner uses the same math as `FaceAdjust.apply`, so what you see in the tuner is what you get in game.
+The web app uses the same math as `FaceAdjust.apply`, so what you see in the web app is what you get in game.
 
 ### Special cases
 
@@ -211,7 +211,7 @@ The client never sends progress, only intent. The server decides everything, so 
 | `/minemobs settings [mob]` | client | open the settings screen (optionally on that mob) |
 | `/minemobs holddelay <4\|4t\|0.2s>` | client | set your tap-or-hold delay |
 | `/minemobs overlay fit\|projection\|files` | client | preview overlay modes |
-| `/minemobs exportmodel [mob]` | client | export a model for the tuner |
+| `/minemobs exportmodel [mob]` | client | export a model for the web app |
 | `/minemobs debug attack <ticks>` | client, dev only | simulated press-and-hold for automated tests |
 
 The client-side commands are also registered on the server as stubs, so they tab-complete; if your client doesn't have the mod, they tell you it's needed.
