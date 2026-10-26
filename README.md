@@ -9,8 +9,6 @@ https://www.youtube.com/results?search_query=this+cursed+minecraft+video+will+tr
 <!-- Screenshot thumbnails coming soon -->
 
 - **Mine any mob like a block.** Hold attack with a stone or better pickaxe and dig right through it.
-- **Mobs freeze while you mine them.** AI, movement and animations hold still, bosses included (yes, the Ender Dragon too).
-- **Crack overlay on the mob itself.** The block-breaking cracks show up on the mob's model as you mine.
 - **Mine players too.** Respects PvP and teams, and they die with "X was mined by Y".
 - **Tap to hit, hold to mine.** A quick click still attacks normally.
 - **Per-mob break times.** Make a zombie as hard as stone or as soft as wood, in the settings screen (Mod Menu or `/minemobs settings`).
@@ -23,7 +21,7 @@ Requires Fabric for Minecraft 1.21 / 1.21.1. [Mod Menu](https://modrinth.com/mod
 
 ## How it works under the hood
 
-See [docs/how-it-works.md](docs/how-it-works.md) for the mod wizardry and technical details.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the mod wizardry and technical details.
 
 ## Credits
 
