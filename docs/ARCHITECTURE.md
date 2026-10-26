@@ -158,7 +158,7 @@ Files are loaded on every resource reload (F3+T) from two places:
 
 `/minemobs overlay fit|projection` temporarily ignores all files to preview a plain mode. `/minemobs overlay files` switches back to the files.
 
-### The web app (`tools/break-overlay-tuner.html`)
+### The web app (`tools/break-overlay-web-app.html`)
 
 Tuning faces by hand-editing JSON is slow, so there's a browser tool:
 
