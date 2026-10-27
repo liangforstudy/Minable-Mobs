@@ -221,3 +221,21 @@ The client-side commands are also registered on the server as stubs, so they tab
 - **Fabric** mod, built with Loom and [Stonecutter](https://stonecutter.kikugie.dev/) for multi-version builds. The current target is Minecraft 1.21–1.21.1. Ports to 1.21.2+ (render states), 1.21.9+ (submit queue) and NeoForge are on the roadmap.
 - Mod properties live in `stonecutter.properties.toml`. `gradle.properties` holds only Gradle options.
 - `tools/mcprpc.py` is a small helper for driving a running dev client through the MCP Fabric bridge, used together with `/minemobs debug attack` for in-game testing.
+
+## 10. Why this is hard (especially on older versions)
+
+Mining mobs sounds like a small idea, but it fights the game at almost every step, and for a long time modders had very little help with that kind of work.
+
+### The game wasn't built for it
+
+- **Cracks only exist for blocks.** Vanilla draws break cracks on blocks and a few block entities like chests, never on mobs. The mod fakes it by drawing the whole model a second time and replacing every UV on the fly (section 5). Even the "where does the texture go on this face" question has no vanilla answer, which is why the fit/projection modes, per-face tuning files and the web app exist.
+- **Older rendering had no clean place to hook in.** Since the 1.15 rendering rewrite, models send their vertices to render types through buffers (`MultiBufferSource`, `VertexConsumer`) that are drawn later in batches. That is what lets `BreakOverlayConsumer` sit between the model and the crack buffer. In older versions, models drew more directly through OpenGL-style calls, so there was nothing to slot in between; you'd have to patch the drawing code itself.
+- **Model parts had no stable names.** Around 1.17, entity models started being built from named layer definitions and baked through `EntityModelSet`. That's the hook `ModelFaces` uses to name faces like `head/cube0/left`. Without it, per-face tuning and the web app couldn't address a face in a way that survives a restart.
+- **Freezing touches many separate systems.** AI, movement and gravity, the walk cycle, the "bob" timer that drives most animations, and the dragon's own wing timer all run independently, and each needs its own hook (section 4). The dragon alone needs three mixins because it skips the code paths every other mob uses.
+- **Newer versions move the target.** From 1.21.2, renderers work from a snapshot of the entity's state rather than the entity itself, and from 1.21.9 drawing is submitted to a queue and done later. Both break how the overlay hooks in today, which is why those ports are separate roadmap items.
+
+### There was little help for modders
+
+- **Tutorials stopped at the basics.** Most modding videos back in the day were "hello world" mods: add a block, add an item, add a sword. A guide like "how to add a custom sword in 1.12.2" is common; nothing walks you through hijacking entity rendering or freezing AI. This kind of mod is learned by reading Minecraft's own code and other mods.
+- **That code used to be hard to read.** Minecraft ships with scrambled names. Mojang only started publishing its official name mappings in 2019, around 1.14.4. Before that, modders relied on community-made names, and plenty of methods were still numbered placeholders like `func_78785_a`, so finding the method that draws a model box took real digging. This project uses Mojang's names plus [Parchment](https://parchmentmc.org/), which adds parameter names and comments that Mojang's mappings leave out.
+- **Tooling was fragile.** Setting up a workspace for old versions often broke. Fabric's tooling and newer tools like Stonecutter (which this repo uses for multi-version builds) make it much smoother.
