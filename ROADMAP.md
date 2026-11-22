@@ -19,7 +19,8 @@
 
 ## Next
 - Mining feedback: hit sound + particles every 4 ticks, break sound + particle burst (entity-texture particles, sound data file)
-- `mob_figure` drop holding the entity's NBT: scaled-down model render, place to respawn, eat it
+- `mob_figure` drop holding the entity's NBT: scaled-down model render, place to respawn, eat it (plan: [custom entity drops roadmap](<docs/custom entity drops roadmap.md>))
+- Flint and steel primes a frozen mob like TNT; the explosion drops nothing or ragdolls it, toggleable (issue #2, same doc)
 
 ## Later
 - Web app: buttons to copy one mob's face settings onto other mobs (match by part names)
@@ -28,4 +29,4 @@
 - Creeper that's already swelling keeps swelling while frozen
 - Mod icon
 - Cracks on layers too (armor, saddles, sheep wool, held items); right now only the body model cracks
-- Port: 1.21.2+ (render states), 1.21.9+ (submit queue), NeoForge
+- Port: 1.21.2+ (render states), 1.21.9+ (submit queue), **26.2** (main next version target; unobfuscated, OpenGL or Vulkan), then check 26.3 (current release), NeoForge
