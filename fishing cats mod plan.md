@@ -39,11 +39,11 @@ Stray means untamed. **Ocelots count as stray cats** and always follow these rul
 - **Stops before the rod breaks:** when the rod has **1 durability left**, the cat stops fishing on its own, so your rod never breaks.
 - **Punch to stop:** hit your own cat to make it stop fishing. This doesn't hurt the cat.
 - **When it stops** (punched or low rod), it walks to the **nearest copper chest**, puts its whole catch inside, and **gives the rod back**.
+- **No copper chest in range, or the chest is full:** it walks to you and drops everything at your feet.
 
 ## Open questions
 
 - **Giving the rod back:** does the cat hand the rod to you, or put it in the copper chest with the catch?
-- **No copper chest nearby or chest full:** walk to you and drop everything at your feet?
 
 ## Version notes
 
