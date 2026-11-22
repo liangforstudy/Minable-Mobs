@@ -33,7 +33,7 @@ Stray means untamed.
 
 - **Keeps everything:** junk, treasure and pufferfish are caught and kept, not left on the ground.
 - **Keeps fishing:** it doesn't run off after a fish. It keeps going until you stop it or the rod gets low.
-- **Stops before the rod breaks:** when the rod's durability gets low, the cat stops fishing on its own, so your rod never breaks.
+- **Stops before the rod breaks:** when the rod has **1 durability left**, the cat stops fishing on its own, so your rod never breaks.
 - **Punch to stop:** hit your own cat to make it stop fishing. This doesn't hurt the cat.
 - **When it stops** (punched or low rod), it walks to the **nearest copper chest**, puts its whole catch inside, and **gives the rod back**.
 
@@ -41,7 +41,6 @@ Stray means untamed.
 
 - **Giving the rod back:** does the cat hand the rod to you, or put it in the copper chest with the catch?
 - **No copper chest nearby or chest full:** walk to you and drop everything at your feet?
-- **Low durability:** how low is "low"? For example 10 uses left, or a setting.
 - **Stray cat's fish:** does it eat it after running off, or keep carrying it?
 - **Range:** how far does a cat look for a fishing spot, and how far for a copper chest?
 - **Other mobs:** are ocelots allowed, or only cats?
@@ -58,6 +57,6 @@ Stray means untamed.
 1. Give the rod, find a spot, sit pose (no fishing yet)
 2. Casting and reeling with a real bobber; enchantments; durability and breaking
 3. Stray cats: only fish count, junk left behind, run away and drop the rod
-4. Tamed cats: keep everything, keep fishing, stop on low durability, punch to stop
+4. Tamed cats: keep everything, keep fishing, stop at 1 durability, punch to stop
 5. Copper chest drop-off and giving the rod back
-6. Settings: range, how low counts as low durability, whether ocelots are allowed
+6. Settings: range, whether ocelots are allowed
