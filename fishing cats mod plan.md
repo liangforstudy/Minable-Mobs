@@ -11,7 +11,7 @@ Right-click a cat with a fishing rod: it runs to the nearest good fishing spot, 
 ## Shared behaviour (all cats)
 
 - **Giving the rod:** right-click a cat with a fishing rod. The cat takes the rod (it leaves your hand) and holds it.
-- **Finding a spot:** the cat runs to the nearest valid fishing spot within a set range. A valid spot is a shore block next to open water that isn't already taken by another fishing cat. No spot in range: the cat drops the rod and goes back to its usual AI.
+- **Finding a spot:** the cat runs to the nearest valid fishing spot within its range (500 blocks for strays, 26 for tamed cats). A valid spot is a shore block next to open water that isn't already taken by another fishing cat. No spot in range: the cat drops the rod and goes back to its usual AI.
 - **Sitting pose:** the cat sits on the edge of the shore, upright with its back legs hanging over the water, holding the rod in its front paws. It uses the normal cat model, posed differently, with no new model.
 - **Casting:** it throws a real fishing bobber, so fish bites work like they do for a player.
 - **Enchantments count:** each pull is a normal rod pull, so the rod's enchantments apply:
@@ -23,14 +23,17 @@ Right-click a cat with a fishing rod: it runs to the nearest good fishing spot, 
 
 ## Stray cats
 
-Stray means untamed.
+Stray means untamed. **Ocelots count as stray cats** and always follow these rules, since they can't be tamed.
+
+- **Range: up to 500 blocks** to find a fishing spot. The game only runs mobs near players, so in practice the cat searches the loaded area and walks there in stages, rather than in one long path.
 
 - **Only fish count:** raw cod, raw salmon and tropical fish. **Junk, treasure and pufferfish are ignored.** The cat reels them in and leaves them on the ground, so **junk piles up around the cat** while it fishes.
-- **Once it catches a fish, it runs away with it**, dropping the rod where it was sitting.
+- **Once it catches a fish, it drops the rod** where it was sitting. If you're close by, it **runs away from you** first, then **eats the fish**.
 - **The rod can break** if it hits zero durability before a fish bites. Then the cat goes back to its usual AI.
 
 ## Tamed cats (more helpful)
 
+- **Range: 26 blocks**, both to find a fishing spot and to find a copper chest.
 - **Keeps everything:** junk, treasure and pufferfish are caught and kept, not left on the ground.
 - **Keeps fishing:** it doesn't run off after a fish. It keeps going until you stop it or the rod gets low.
 - **Stops before the rod breaks:** when the rod has **1 durability left**, the cat stops fishing on its own, so your rod never breaks.
@@ -41,9 +44,6 @@ Stray means untamed.
 
 - **Giving the rod back:** does the cat hand the rod to you, or put it in the copper chest with the catch?
 - **No copper chest nearby or chest full:** walk to you and drop everything at your feet?
-- **Stray cat's fish:** does it eat it after running off, or keep carrying it?
-- **Range:** how far does a cat look for a fishing spot, and how far for a copper chest?
-- **Other mobs:** are ocelots allowed, or only cats?
 
 ## Version notes
 
@@ -56,7 +56,7 @@ Stray means untamed.
 
 1. Give the rod, find a spot, sit pose (no fishing yet)
 2. Casting and reeling with a real bobber; enchantments; durability and breaking
-3. Stray cats: only fish count, junk left behind, run away and drop the rod
+3. Stray cats and ocelots: only fish count, junk left behind, drop the rod, run from you, eat the fish
 4. Tamed cats: keep everything, keep fishing, stop at 1 durability, punch to stop
 5. Copper chest drop-off and giving the rod back
-6. Settings: range, whether ocelots are allowed
+6. Settings: both ranges (defaults 500 and 26)
