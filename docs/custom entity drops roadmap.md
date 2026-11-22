@@ -40,6 +40,13 @@ Instead, **the item draws the mob itself, using the mob's own renderer.** Vanill
 - **Bosses:** a Wither or dragon figure could spawn a boss in a base. Use a server config (or the `#minemobs:unminable` tag) to block placing bosses back, or to turn their figures into display-only items.
 - **Riders:** already ejected before `discard()`, so each figure holds one mob only.
 
+### The Ender Dragon and the exit portal
+
+- **Mined or blown up (issue #2):** the dragon counts as killed and **the exit portal lights up by itself**. `discard()` alone skips this, because the dragon fight only reacts to a normal death. So the mod calls the dragon fight's "dragon killed" step itself, before removing the dragon.
+- **Placed back in the End:** **the exit portal turns itself off again**, and the dragon fight starts tracking the placed dragon (boss bar, so it can be killed or mined again).
+- **No End crystals come back.** Placing the dragon back only puts the dragon back; it doesn't rebuild the pillars' crystals the way a vanilla respawn does.
+- **Every version:** the dragon fight code is the same idea in 1.21.1, 26.2 and 26.3; only the method names differ (26.x is unobfuscated). Check for any change in 26.3 when porting.
+
 ### What changes between versions
 
 | Part | 1.21.1 (target now) | 26.2 (main roadmap) | 26.3 (current release) |
@@ -96,7 +103,9 @@ Instead, **the item draws the mob itself, using the mob's own renderer.** Vanill
 
 ## Open questions
 
-- Should figures of bosses be placeable?
+- Should figures of bosses be placeable? (The dragon is: see "The Ender Dragon and the exit portal")
+- Dragon: does mining it the first time drop the dragon egg and open an End gateway like a vanilla kill? And does placing it back and mining it again open more gateways (vanilla stops at 20)?
+- Dragon figure placed back outside the End: a plain dragon with no fight, or blocked?
 - Mined players: show-only figure, or no drop?
 - Fire charge too, or only flint and steel?
 - Ragdolls: should other players see them too (synced), or only the player's own client?
