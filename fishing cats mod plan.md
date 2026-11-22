@@ -11,7 +11,7 @@ Right-click a cat with a fishing rod: it runs to the nearest good fishing spot, 
 ## Shared behaviour (all cats)
 
 - **Giving the rod:** right-click a cat with a fishing rod. The cat takes the rod (it leaves your hand) and holds it.
-- **Finding a spot:** the cat runs to the nearest valid fishing spot within its range (500 blocks for strays, 26 for tamed cats). A valid spot is a shore block next to open water that isn't already taken by another fishing cat. No spot in range: the cat drops the rod and goes back to its usual AI.
+- **Finding a spot:** the cat runs to the nearest valid fishing spot within its range (about 80–160 blocks for strays, 26 for tamed cats). A valid spot is a shore block next to open water that isn't already taken by another fishing cat. No spot in range: the cat drops the rod and goes back to its usual AI.
 - **Sitting pose:** the cat sits on the edge of the shore, upright with its back legs hanging over the water, holding the rod in its front paws. It uses the normal cat model, posed differently, with no new model.
 - **Casting:** it throws a real fishing bobber, so fish bites work like they do for a player.
 - **Enchantments count:** each pull is a normal rod pull, so the rod's enchantments apply:
@@ -25,7 +25,7 @@ Right-click a cat with a fishing rod: it runs to the nearest good fishing spot, 
 
 Stray means untamed. **Ocelots count as stray cats** and always follow these rules, since they can't be tamed.
 
-- **Range: up to 500 blocks** to find a fishing spot. The game only runs mobs near players, so in practice the cat searches the loaded area and walks there in stages, rather than in one long path.
+- **Range: the same as other mobs, about 80–160 blocks** to find a fishing spot. It follows the server's simulation distance, since mobs only run near players. The cat walks there in stages, rather than in one long path.
 
 - **Only fish count:** raw cod, raw salmon and tropical fish. **Junk, treasure and pufferfish are ignored.** The cat reels them in and leaves them on the ground, so **junk piles up around the cat** while it fishes.
 - **Once it catches a fish, it drops the rod** where it was sitting. If you're close by, it **runs away from you** first, then **eats the fish**.
@@ -59,4 +59,4 @@ Stray means untamed. **Ocelots count as stray cats** and always follow these rul
 3. Stray cats and ocelots: only fish count, junk left behind, drop the rod, run from you, eat the fish
 4. Tamed cats: keep everything, keep fishing, stop at 1 durability, punch to stop
 5. Copper chest drop-off and giving the rod back
-6. Settings: both ranges (defaults 500 and 26)
+6. Settings: tamed cat range (default 26); the stray range follows the simulation distance
